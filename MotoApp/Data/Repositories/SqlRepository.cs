@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using MotoApp.Entities;
+using MotoApp.Data.Entities;
 
-namespace MotoApp.Repositories
+namespace MotoApp.Data.Repositories
 {
     public class SqlRepository<T> : IRepository<T> where T : class, IEntity, new()
     {
@@ -23,12 +23,12 @@ namespace MotoApp.Repositories
             return _dbSet.ToList();
         }
 
-        public T? GetById(int id) 
+        public T? GetById(int id)
         {
             return _dbSet.Find(id);
         }
 
-        public void Add(T item) 
+        public void Add(T item)
         {
             _dbSet.Add(item);
             _itemAddedCallback?.Invoke(item);
@@ -42,7 +42,7 @@ namespace MotoApp.Repositories
 
         public void Save()
         {
-            _dbContext.SaveChanges();   
+            _dbContext.SaveChanges();
         }
     }
 }

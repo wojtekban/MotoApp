@@ -1,4 +1,4 @@
-﻿namespace MotoApp.DataProviders;
+﻿namespace MotoApp.Components.DataProviders;
 
 public interface ICarsProvider
 {
@@ -34,8 +34,8 @@ public interface ICarsProvider
     List<Car> TakeCarsWhileNameStartsWith(string prefix);
 
     // Skip
-    List <Car> SkipCars(int howMany);
-    List <Car> SkipCarsWhileNameStartsWith(string prefix);
+    List<Car> SkipCars(int howMany);
+    List<Car> SkipCarsWhileNameStartsWith(string prefix);
 
     //Distinct
     List<string> DistinctAllColors();

@@ -1,7 +1,7 @@
-﻿using MotoApp.Entities;
+﻿using MotoApp.Data.Entities;
 using System.Runtime.InteropServices;
 
-namespace MotoApp.Repositories
+namespace MotoApp.Data.Repositories
 {
     public class ListRepository<T> : IRepository<T> where T : class, IEntity, new()
     {
@@ -9,12 +9,12 @@ namespace MotoApp.Repositories
 
         public IEnumerable<T> GetAll()
         {
-            return _items.ToList(); 
+            return _items.ToList();
         }
 
         public T GetById(int id)
         {
-             return _items.Single(item => item.Id == id);
+            return _items.Single(item => item.Id == id);
         }
 
         public void Add(T item)
@@ -32,7 +32,7 @@ namespace MotoApp.Repositories
         {
             foreach (var item in _items)
             {
-               // Console.WriteLine(item);
+                // Console.WriteLine(item);
             }
         }
     }

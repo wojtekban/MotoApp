@@ -1,7 +1,7 @@
-﻿namespace MotoApp.DataProviders;
+﻿namespace MotoApp.Components.DataProviders;
 
-using MotoApp.DataProviders.Extensions;
-using MotoApp.Repositories;
+using MotoApp.Components.DataProviders.Extensions;
+using MotoApp.Data.Repositories;
 using System;
 using System.Drawing;
 using System.Text;
@@ -49,7 +49,7 @@ public class CarsProvider : ICarsProvider
         });
 
         StringBuilder sb = new(1048);
-        foreach (var car in list) 
+        foreach (var car in list)
         {
             sb.AppendLine($"Product  ID:  {car.Identifier}");
             sb.AppendLine($"  Product Name:  {car.ProductName}");
@@ -125,7 +125,7 @@ public class CarsProvider : ICarsProvider
         return cars
             .FirstOrDefault(
             x => x.Color == color,
-            new Car { Id = -1, Name = "NOT FOUND"});
+            new Car { Id = -1, Name = "NOT FOUND" });
     }
 
     public Car LastByColor(string color)
@@ -204,10 +204,10 @@ public class CarsProvider : ICarsProvider
     public List<Car> DistinctByColors()
     {
         var cars = _carsRepository.GetAll();
-            return cars
-            .DistinctBy(x => x.Color)
-            .OrderBy(x => x.Color)
-            .ToList();
+        return cars
+        .DistinctBy(x => x.Color)
+        .OrderBy(x => x.Color)
+        .ToList();
     }
 
     public List<Car[]> ChunkCars(int size)
