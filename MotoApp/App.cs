@@ -1,4 +1,6 @@
 ﻿using MotoApp.Components.CsvReader;
+using MotoApp.Components.CsvReader.Models;
+using System.Xml.Linq;
 
 namespace MotoApp;
 
@@ -12,9 +14,105 @@ public class App : IApp
 
     public void Run()
     {
-        var cars = _csvReader.ProcessCars("Resources\\Files\\fuel.csv");
-        var manufacturers = _csvReader.ProcessManufacturers("Resources\\Files\\manufacturers.csv");
+        CreateXml();
+        QueryXml();
     }
+
+    private void QueryXml()
+    {
+        var document = XDocument.Load("Resources\\Files\\fuel.xml");
+        var names = document
+            .Element("Cars")?
+            .Elements("Car")
+            .Where(x => x.Attribute("Manufacturer")?.Value == "BMW")
+            .Select(x => x.Attribute("Name")?.Value);
+
+        foreach ( var name in names) 
+        {
+            Console.WriteLine(name);
+        }
+    }
+
+    private void CreateXml()
+    {
+        var records = _csvReader.ProcessCars("Resources\\Files\\fuel.csv");
+
+        var document = new XDocument();
+
+        var cars = new XElement("Cars", records
+            .Select(x =>
+                new XElement("Car",
+                new XAttribute("Name", x.Name),
+                new XAttribute("Combined", x.Combined),
+                new XAttribute("Manufacturer", x.Manufacturer))));
+
+        document.Add(cars);
+        document.Save("Resources\\Files\\fuel.xml");
+    }
+    
+    //var cars = _csvReader.ProcessCars("Resources\\Files\\fuel.csv");
+        //var manufacturers = _csvReader.ProcessManufacturers("Resources\\Files\\manufacturers.csv");
+
+        //var groups = cars //List<TCar>
+        //    .GroupBy(x => x.Manufacturer)
+        //    .Select(g => new
+        //    {
+        //        Name = g.Key,
+        //        Max = g.Max(cars => cars.Combined),
+        //        Average = g.Average(c => c.Combined),
+        //    })
+        //    .OrderBy(x => x.Average);
+
+        //foreach (var group in groups)
+        //{
+        //    Console.WriteLine($"{group.Name}");
+        //    Console.WriteLine($"\t Max: {group.Max}");
+        //    Console.WriteLine($"\t Averange: {group.Average}");
+        //}
+
+        //var carsInCountry = cars.Join(
+        //    manufacturers,
+        //    c => new { c.Manufacturer, c.Year},
+        //    m => new { Manufacturer = m.Name, m.Year },
+        //    (car, manufacturer) =>
+        //        new
+        //        {
+        //            manufacturer.Country,
+        //            car.Name,
+        //            car.Combined
+        //        })
+        //    .OrderByDescending(x => x.Combined)
+        //    .ThenBy(x => x.Name);
+
+        //foreach (var car in carsInCountry)
+        //{
+        //    Console.WriteLine($"Country: {car.Country}");
+        //    Console.WriteLine($"\t Name: {car.Name}");
+        //    Console.WriteLine($"\t Combined: {car.Combined}");
+        //}
+
+        //var groups = manufacturers.GroupJoin(
+        //    cars,
+        //    manufacturer => manufacturer.Name,
+        //    car => car.Manufacturer,
+        //    (m, g) =>
+        //        new
+        //        {
+        //            manufacturer = m,
+        //            Cars = g
+        //        })
+        //    .OrderBy(x => x.manufacturer.Name);
+
+        //foreach (var group in groups)
+        //{
+        //    Console.WriteLine($"Manufacturer: {group.manufacturer.Name}");
+        //    Console.WriteLine($"\t Cars: {group.Cars.Count()}");
+        //    Console.WriteLine($"\t Max: {group.Cars.Max(x => x.Combined)}");
+        //    Console.WriteLine($"\t Min: {group.Cars.Min(x => x.Combined)}");
+        //    Console.WriteLine($"\t Avg: {group.Cars.Average(x => x.Combined)}");
+        //    Console.WriteLine();
+        //}
+   // }
 }
     //private readonly IRepository<Employee> _employeesRepository;
     //private readonly IRepository<Car> _carsRepository;
