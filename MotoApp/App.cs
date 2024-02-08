@@ -1,436 +1,92 @@
-﻿using MotoApp.Components.CsvReader;
+﻿using Microsoft.EntityFrameworkCore.Migrations.Operations;
+using MotoApp.Components.CsvReader;
 using MotoApp.Components.CsvReader.Models;
 using System.Xml.Linq;
+using static Azure.Core.HttpHeader;
 
 namespace MotoApp;
 
 public class App : IApp
 {
     private readonly ICsvReader _csvReader;
-    public App(ICsvReader csvReader)
+    private readonly MotoAppDbContext _motoAppDbContext;
+    public App(ICsvReader csvReader, MotoAppDbContext motoAppContext)
     {
-            _csvReader = csvReader;
+        _csvReader = csvReader;
+        _motoAppDbContext = motoAppContext;
+        _motoAppDbContext.Database.EnsureCreated();
     }
 
     public void Run()
     {
-        CreateXml();
-        QueryXml();
+        //  InsertData();
+        //  ReadAllCarsFromDb();
+        //  ReadGroupedCarsFromDb();
+
+        var cayman = this.ReadFirst("Cayman");
+        //cayman.Name = "Mój samochód";
+         _motoAppDbContext.Cars.Remove(cayman);
+        _motoAppDbContext.SaveChanges();
     }
 
-    private void QueryXml()
+    private Car? ReadFirst(string name)
     {
-        var document = XDocument.Load("Resources\\Files\\fuel.xml");
-        var names = document
-            .Element("Cars")?
-            .Elements("Car")
-            .Where(x => x.Attribute("Manufacturer")?.Value == "BMW")
-            .Select(x => x.Attribute("Name")?.Value);
+        return _motoAppDbContext.Cars.FirstOrDefault(c => c.Name == name);
+    }
 
-        foreach ( var name in names) 
+    private void ReadGroupedCarsFromDb()
+    {
+        var groups = _motoAppDbContext
+        .Cars
+        .GroupBy(x => x.Manufacturer)
+        .Select(x => new
         {
-            Console.WriteLine(name);
+            Name = x.Key,
+            Cars = x.ToList(),
+        })
+            .ToList();
+
+        foreach ( var group in groups) 
+        {
+            Console.WriteLine(group.Name);
+            Console.WriteLine("====="); 
+            foreach ( var car in group.Cars)
+            {
+                Console.WriteLine($"\t{car.Name}: {car.Combined}");
+            }
+            Console.WriteLine();
+
+        }
+    }
+    private void ReadAllCarsFromDb()
+    {
+        var carsFromDb = _motoAppDbContext.Cars.ToList();
+
+        foreach (var carFromDb in carsFromDb)
+
+        {
+            Console.WriteLine($"\t{carFromDb.Name}: {carFromDb.Combined}");
         }
     }
 
-    private void CreateXml()
-    {
-        var records = _csvReader.ProcessCars("Resources\\Files\\fuel.csv");
+    private void InsertData()
+    { 
+         var cars = _csvReader.ProcessCars("Resources\\Files\\fuel.csv");
 
-        var document = new XDocument();
-
-        var cars = new XElement("Cars", records
-            .Select(x =>
-                new XElement("Car",
-                new XAttribute("Name", x.Name),
-                new XAttribute("Combined", x.Combined),
-                new XAttribute("Manufacturer", x.Manufacturer))));
-
-        document.Add(cars);
-        document.Save("Resources\\Files\\fuel.xml");
+        foreach (var car in cars) 
+        {
+            _motoAppDbContext.Cars.Add(new Car()
+            {
+                Manufacturer = car.Manufacturer,
+                Name = car.Name,
+                Year = car.Year,
+                City = car.City,
+                Combined = car.Combined,
+                Cylinders = car.Cylinders,
+                Displacement = car.Displacement,
+                Highway = car.Highway
+            });
+        }
+        _motoAppDbContext.SaveChanges();
     }
-    
-    //var cars = _csvReader.ProcessCars("Resources\\Files\\fuel.csv");
-        //var manufacturers = _csvReader.ProcessManufacturers("Resources\\Files\\manufacturers.csv");
-
-        //var groups = cars //List<TCar>
-        //    .GroupBy(x => x.Manufacturer)
-        //    .Select(g => new
-        //    {
-        //        Name = g.Key,
-        //        Max = g.Max(cars => cars.Combined),
-        //        Average = g.Average(c => c.Combined),
-        //    })
-        //    .OrderBy(x => x.Average);
-
-        //foreach (var group in groups)
-        //{
-        //    Console.WriteLine($"{group.Name}");
-        //    Console.WriteLine($"\t Max: {group.Max}");
-        //    Console.WriteLine($"\t Averange: {group.Average}");
-        //}
-
-        //var carsInCountry = cars.Join(
-        //    manufacturers,
-        //    c => new { c.Manufacturer, c.Year},
-        //    m => new { Manufacturer = m.Name, m.Year },
-        //    (car, manufacturer) =>
-        //        new
-        //        {
-        //            manufacturer.Country,
-        //            car.Name,
-        //            car.Combined
-        //        })
-        //    .OrderByDescending(x => x.Combined)
-        //    .ThenBy(x => x.Name);
-
-        //foreach (var car in carsInCountry)
-        //{
-        //    Console.WriteLine($"Country: {car.Country}");
-        //    Console.WriteLine($"\t Name: {car.Name}");
-        //    Console.WriteLine($"\t Combined: {car.Combined}");
-        //}
-
-        //var groups = manufacturers.GroupJoin(
-        //    cars,
-        //    manufacturer => manufacturer.Name,
-        //    car => car.Manufacturer,
-        //    (m, g) =>
-        //        new
-        //        {
-        //            manufacturer = m,
-        //            Cars = g
-        //        })
-        //    .OrderBy(x => x.manufacturer.Name);
-
-        //foreach (var group in groups)
-        //{
-        //    Console.WriteLine($"Manufacturer: {group.manufacturer.Name}");
-        //    Console.WriteLine($"\t Cars: {group.Cars.Count()}");
-        //    Console.WriteLine($"\t Max: {group.Cars.Max(x => x.Combined)}");
-        //    Console.WriteLine($"\t Min: {group.Cars.Min(x => x.Combined)}");
-        //    Console.WriteLine($"\t Avg: {group.Cars.Average(x => x.Combined)}");
-        //    Console.WriteLine();
-        //}
-   // }
 }
-    //private readonly IRepository<Employee> _employeesRepository;
-    //private readonly IRepository<Car> _carsRepository;
-    //private readonly ICarsProvider _carsProvider;
-
-    //public ICarsProvider carsProvider { get; }
-
-    //public App(
-    //    IRepository<Employee> employeesRepository, 
-    //    IRepository<Car> carsRepository,
-    //    ICarsProvider carsProvider)
-    //{
-    //    _employeesRepository = employeesRepository;
-    //    _carsRepository = carsRepository;
-    //    _carsProvider = carsProvider;
-    //}
-    //public void Run()
-    //{
-    //Console.WriteLine("I`m here in Run() method");
-
-    //    //adding
-    //    var employees = new[]
-    //    {
-    //        new Employee { FirstName = "Adam"},
-    //        new Employee { FirstName = "Piotr"},
-    //        new Employee { FirstName = "Zuzanna"},
-    //    };
-
-    //    foreach (var employee in employees)
-    //    {
-    //        _employeesRepository.Add(employee);
-    //    }
-
-    //    _employeesRepository.Save();
-
-    //    //reading
-    //    var items = _employeesRepository.GetAll();
-    //    foreach (var item in items)
-    //    {
-    //        Console.WriteLine(item);
-    //    }
-
-    //    // cars
-    //    var cars = GenerateSampleCars();
-    //    foreach (var item in cars)
-    //    {
-    //        _carsRepository.Add(item);
-    //    }
-
-    //    Console.WriteLine();
-    //    Console.WriteLine("GetUniqueCarCorols");
-    //    foreach (var item in _carsProvider.OrderByColorAndName())
-    //    {
-    //        Console.WriteLine(item);
-    //    }
-
-    //    Console.WriteLine();
-    //    Console.WriteLine("GetMinimumPriceOfAllCars");
-    //    Console.WriteLine(_carsProvider.GetMinimumPriceOfAllCars());
-
-        
-    //    Console.WriteLine();
-    //    Console.WriteLine("OrderByName");
-    //    foreach (var item in _carsProvider.OrderByName())
-    //    {
-    //        Console.WriteLine(item);
-    //    }
-
-    //    Console.WriteLine();
-    //    Console.WriteLine("OrderByNameDescending");
-    //    foreach (var item in _carsProvider.OrderByNameDescending())
-    //    {
-    //        Console.WriteLine(item);
-    //    }
-
-    //    Console.WriteLine();
-    //    Console.WriteLine("OrderByColorAndName");
-    //    foreach (var item in _carsProvider.OrderByColorAndName())
-    //    {
-    //        Console.WriteLine(item);
-    //    }
-
-    //    Console.WriteLine();
-    //    Console.WriteLine("OrderByColorAndNameDesc");
-    //    foreach (var item in _carsProvider.OrderByColorAndNameDesc())
-    //    {
-    //        Console.WriteLine(item);
-    //    }
-
-    //    Console.WriteLine();
-    //    Console.WriteLine("WhereStartsWith A");
-    //    foreach (var item in _carsProvider.WhereStartsWith("A"))
-    //    {
-    //        Console.WriteLine(item);
-    //    }
-
-    //    Console.WriteLine();
-    //    Console.WriteLine("WhereStartsWithAndCostIsGreaterThan A / 1000");
-    //    foreach (var item in _carsProvider.WhereStartsWithAndCostIsGreaterThan("A", 1000))
-    //    {
-    //        Console.WriteLine(item);
-    //    }
-
-    //    Console.WriteLine();
-    //    Console.WriteLine("WhereColorIs Red");
-    //    foreach (var item in _carsProvider.WhereColorIs("Red"))
-    //    {
-    //        Console.WriteLine(item);
-    //    }
-
-    //    Console.WriteLine();
-    //    Console.WriteLine("FirstByColor");
-    //    Console.WriteLine(_carsProvider.FirstOrDefaultByColor("Red"));
-
-    //    Console.WriteLine();
-    //    Console.WriteLine("FirstOrDefoultByColor");
-    //    Console.WriteLine(_carsProvider.FirstOrDefaultByColor("Red"));
-
-    //    Console.WriteLine();
-    //    Console.WriteLine("FirstOrDefaultByColorWithDefault");
-    //    Console.WriteLine(_carsProvider.FirstOrDefaultByColorWithDefault("Red"));
-
-    //    Console.WriteLine();
-    //    Console.WriteLine("LastByColor");
-    //    Console.WriteLine(_carsProvider.LastByColor("Red"));
-
-    //    Console.WriteLine();
-    //    Console.WriteLine("SingleById");
-    //    Console.WriteLine(_carsProvider.SingleById(10));
-
-
-    //    Console.WriteLine();
-    //    Console.WriteLine("SingleOrDefaultById");
-    //    Console.WriteLine(_carsProvider.SingleOrDefaultById(10));
-
-    //    Console.WriteLine();
-    //    Console.WriteLine("TakeCars");
-    //    foreach (var car in _carsProvider.TakeCars(10))
-    //    {
-    //        Console.WriteLine(car);
-    //    }
-
-    //    Console.WriteLine();
-    //    Console.WriteLine("TakeCarsRange");
-    //    foreach (var car in _carsProvider.TakeCars(2..5))
-    //    {
-    //        Console.WriteLine(car);
-    //    }
-
-    //    Console.WriteLine();
-    //    Console.WriteLine("TakeCarsWhileNameStartsWith S");
-    //    foreach (var car in _carsProvider.TakeCarsWhileNameStartsWith("S"))
-    //    {
-    //        Console.WriteLine(car);
-    //    }
-    //    Console.WriteLine();
-    //    Console.WriteLine("SkipCars");
-    //    foreach (var item in _carsProvider.SkipCars(10))
-    //    {
-    //        Console.WriteLine(item);
-    //    }
-
-    //    Console.WriteLine();
-    //    Console.WriteLine("SkipCarsWhileNameStartsWith C");
-    //    foreach (var item in _carsProvider.SkipCarsWhileNameStartsWith("C"))
-    //    {
-    //        Console.WriteLine(item);
-    //    }
-
-    //    Console.WriteLine();
-    //    Console.WriteLine("DistinctAllColors");
-    //    foreach (var car in _carsProvider.DistinctAllColors())
-    //    {
-    //        Console.WriteLine(car);
-    //    }
-
-    //    Console.WriteLine();
-    //    Console.WriteLine("DistinctByColors");
-    //    foreach (var car in _carsProvider.DistinctByColors())
-    //    {
-    //        Console.WriteLine(car);
-    //    }
-
-    //    Console.WriteLine();
-    //    Console.WriteLine("ChunkCars");
-    //    foreach (var item in _carsProvider.ChunkCars(3))
-    //    {
-    //        Console.WriteLine($"Chunnk:");
-    //        foreach (var i in item)
-    //        {
-    //            Console.WriteLine(i);
-    //        }
-    //        Console.WriteLine("###");
-    //    }
-   // }
-
-    //public static List<Car> GenerateSampleCars()
-    //{
-    //    return new List<Car>
-    //    {
-    //        new Car
-    //        {
-    //            Id =680,
-    //            Name = "Car 1",
-    //            Color = "Black",
-    //            StandardCost = 1059.31M,
-    //            ListPrice = 1431.50M,
-    //            Type = "58",
-    //        },
-    //        new Car
-    //        {
-    //            Id =706,
-    //            Name = "Car 2",
-    //            Color = "Red",
-    //            StandardCost = 1059.31M,
-    //            ListPrice = 1431.50M,
-    //            Type = "58",
-    //        },
-    //        new Car
-    //        {
-    //            Id =707,
-    //            Name = "Car 3",
-    //            Color = "Red",
-    //            StandardCost = 13.08M,
-    //            ListPrice = 34.99M,
-    //            Type = "null",
-    //        },
-    //        new Car
-    //        {
-    //            Id =708,
-    //            Name = "Car 4",
-    //            Color = "Blue",
-    //            StandardCost = 15.08M,
-    //            ListPrice = 24.99M,
-    //            Type = "24",
-    //        },
-    //        new Car
-    //        {
-    //            Id =709,
-    //            Name = "Car 5",
-    //            Color = "Yellow",
-    //            StandardCost = 11.08M,
-    //            ListPrice = 35.99M,
-    //            Type = "58",
-    //        },
-    //        new Car
-    //        {
-    //            Id =710,
-    //            Name = "Car 6",
-    //            Color = "Green",
-    //            StandardCost = 16.08M,
-    //            ListPrice = 27.99M,
-    //            Type = "30",
-    //        },
-    //        new Car
-    //        {
-    //            Id =711,
-    //            Name = "Car 7",
-    //            Color = "Red",
-    //            StandardCost = 43.08M,
-    //            ListPrice = 14.99M,
-    //            Type = "30",
-    //        },
-    //        new Car
-    //        {
-    //            Id =712,
-    //            Name = "Car 8",
-    //            Color = "Bleck",
-    //            StandardCost = 16.08M,
-    //            ListPrice = 22.99M,
-    //            Type = "null",
-    //        },
-    //        new Car
-    //        {
-    //            Id =713,
-    //            Name = "Car 9",
-    //            Color = "Yellow",
-    //            StandardCost = 12.08M,
-    //            ListPrice = 44.99M,
-    //            Type = "58",
-    //        },
-    //        new Car
-    //        {
-    //            Id =714,
-    //            Name = "Car 10",
-    //            Color = "Blue",
-    //            StandardCost = 11.08M,
-    //            ListPrice = 35.99M,
-    //            Type = "32",
-    //        },
-    //        new Car
-    //        {
-    //            Id =715,
-    //            Name = "Car 11",
-    //            Color = "Orange",
-    //            StandardCost = 14.08M,
-    //            ListPrice = 37.99M,
-    //            Type = "52",
-    //        },
-    //        new Car
-    //        {
-    //            Id =716,
-    //            Name = "Car 12",
-    //            Color = "Red",
-    //            StandardCost = 9.08M,
-    //            ListPrice = 20.99M,
-    //            Type = "45",
-    //        },
-    //        new Car
-    //        {
-    //            Id =717,
-    //            Name = "Car 3",
-    //            Color = "Bleck",
-    //            StandardCost = 10.08M,
-    //            ListPrice = 30.99M,
-    //            Type = "null",
-    //        }
-    //    };
-    //}
-//}
-
